@@ -11,26 +11,47 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 
 # -----------------------------
-# Generar dataset simulado
-# -----------------------------
-X, y = make_classification(
-    n_samples=300,
-    n_features=6,
-    n_informative=4,
-    n_redundant=0,
-    n_classes=3,
-    random_state=42
-)
-
-# Convertir a DataFrame para mostrar
-df = pd.DataFrame(X, columns=[f"Feature_{i}" for i in range(1, 7)])
-df["Target"] = y
-
-# -----------------------------
-# Streamlit UI
+# Cargar datos
 # -----------------------------
 st.title("🧠 Clasificación Supervisada en Python")
-st.write("Ejemplo con **EDA, KNN, Árbol de Decisión y Naive Bayes** sobre un dataset simulado.")
+st.write("Ejemplo con **EDA, KNN, Árbol de Decisión y Naive Bayes**. Puedes usar datos simulados o cargar tu propio CSV.")
+
+opcion = st.radio("Selecciona el origen de los datos:", ["Simulado", "Subir CSV"])
+
+if opcion == "Simulado":
+    # Dataset simulado
+    X, y = make_classification(
+        n_samples=300,
+        n_features=6,
+        n_informative=4,
+        n_redundant=0,
+        n_classes=3,
+        random_state=42
+    )
+    df = pd.DataFrame(X, columns=[f"Feature_{i}" for i in range(1, 7)])
+    df["Target"] = y
+
+else:
+    uploaded_file = st.file_uploader("Sube un archivo CSV", type=["csv"])
+    if uploaded_file is not None:
+        try:
+            df = pd.read_csv(uploaded_file)
+
+            # Validaciones
+            if df.shape[1] < 6:
+                st.error("❌ El archivo debe tener al menos 6 columnas.")
+                st.stop()
+
+            if "Target" not in df.columns:
+                st.error("❌ El archivo debe contener una columna llamada **Target** con las etiquetas.")
+                st.stop()
+
+        except Exception as e:
+            st.error(f"❌ Error al leer el archivo: {e}")
+            st.stop()
+    else:
+        st.warning("Por favor sube un archivo CSV para continuar.")
+        st.stop()
 
 # -----------------------------
 # Exploratory Data Analysis (EDA)
@@ -66,8 +87,11 @@ sns.heatmap(df.corr(), annot=True, cmap="coolwarm", ax=ax)
 st.pyplot(fig)
 
 # -----------------------------
-# División de datos
+# Preparar datos para entrenamiento
 # -----------------------------
+X = df.drop("Target", axis=1)
+y = df["Target"]
+
 test_size = st.slider("Proporción de test (%)", 10, 50, 20, step=5) / 100
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
 
