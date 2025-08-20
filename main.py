@@ -107,3 +107,13 @@ st.pyplot(fig)
 # Visualización 2D de clases
 # -----------------------------
 st.subheader("🔎 Visualización 2D de Clases")
+feat_x = st.selectbox("Eje X", df.columns[:-1], index=0)
+feat_y = st.selectbox("Eje Y", df.columns[:-1], index=1)
+
+fig, ax = plt.subplots()
+scatter = ax.scatter(df[feat_x], df[feat_y], c=df["Target"], cmap="viridis", alpha=0.7)
+legend1 = ax.legend(*scatter.legend_elements(), title="Clases")
+ax.add_artist(legend1)
+ax.set_xlabel(feat_x)
+ax.set_ylabel(feat_y)
+st.pyplot(fig)
