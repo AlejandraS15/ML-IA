@@ -9,6 +9,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
+from sklearn import tree
 
 # -----------------------------
 # Cargar datos
@@ -141,3 +142,21 @@ ax.add_artist(legend1)
 ax.set_xlabel(feat_x)
 ax.set_ylabel(feat_y)
 st.pyplot(fig)
+
+# -----------------------------
+# Mostrar Árbol de Decisión
+# -----------------------------
+if modelo == "Árbol de Decisión":
+    st.subheader("🌳 Visualización del Árbol de Decisión")
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    tree.plot_tree(
+        clf,
+        feature_names=X.columns,
+        class_names=[str(c) for c in np.unique(y)],
+        filled=True,
+        rounded=True,
+        fontsize=8,
+        ax=ax
+    )
+    st.pyplot(fig)
