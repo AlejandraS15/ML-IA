@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split
@@ -7,26 +8,30 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
+from sklearn import tree
 
 # -----------------------------
-# Cargar datos
+# Título de la app
 # -----------------------------
-st.title("🌱 Clasificación de Cultivos con ML")
-st.write("Sube un archivo CSV con datos agrícolas para identificar el tipo de cultivo.")
+st.title("🌱 Clasificación de Cultivos con Machine Learning")
+st.write("Sube un archivo CSV con datos agrícolas para identificar el tipo de cultivo (ej. papa, maíz, etc.).")
 
+# -----------------------------
+# Subir archivo CSV
+# -----------------------------
 uploaded_file = st.file_uploader("📂 Sube tu archivo CSV", type=["csv"])
 
 if uploaded_file is not None:
     try:
         df = pd.read_csv(uploaded_file)
 
-        # Validaciones
-        if df.shape[1] < 3:
-            st.error("❌ El archivo debe tener al menos 3 columnas (2 características + Target).")
+        # Validaciones básicas
+        if df.shape[1] < 6:
+            st.error("❌ El archivo debe tener al menos 6 columnas (5 características + Target).")
             st.stop()
 
         if "Target" not in df.columns:
-            st.error("❌ El archivo debe contener una columna llamada **Target** con el tipo de cultivo.")
+            st.error("❌ El archivo debe contener una columna llamada **Target** con los cultivos (ej. papa, maíz...).")
             st.stop()
 
         # -----------------------------
@@ -40,18 +45,26 @@ if uploaded_file is not None:
         st.subheader("📈 Estadísticas Descriptivas")
         st.write(df.describe())
 
-        # Histogramas
-        st.subheader("📊 Histogramas de Variables")
-        columna_hist = st.selectbox("Selecciona una columna numérica:", df.columns[:-1])
+        # Histograma
+        st.subheader("📊 Histogramas")
+        col_hist = st.selectbox("Selecciona una columna para histograma:", df.columns[:-1])
         fig, ax = plt.subplots()
-        ax.hist(df[columna_hist], bins=20, color="skyblue", edgecolor="black")
-        ax.set_title(f"Histograma de {columna_hist}")
+        ax.hist(df[col_hist], bins=20, color="skyblue", edgecolor="black")
+        ax.set_title(f"Histograma de {col_hist}")
         st.pyplot(fig)
 
-        # Mapa de calor
-        st.subheader("📊 Correlaciones")
+        # Boxplot
+        st.subheader("📦 Boxplot")
+        col_box = st.selectbox("Selecciona una columna para boxplot:", df.columns[:-1])
+        fig, ax = plt.subplots()
+        sns.boxplot(x=df[col_box], ax=ax, color="lightcoral")
+        ax.set_title(f"Boxplot de {col_box}")
+        st.pyplot(fig)
+
+        # Correlación
+        st.subheader("📊 Mapa de Correlaciones")
         fig, ax = plt.subplots(figsize=(8, 6))
-        sns.heatmap(df.corr(numeric_only=True), annot=True, cmap="YlGnBu", ax=ax)
+        sns.heatmap(df.corr(), annot=True, cmap="coolwarm", ax=ax)
         st.pyplot(fig)
 
         # -----------------------------
@@ -73,8 +86,9 @@ if uploaded_file is not None:
             n_neighbors = st.slider("Número de vecinos (k)", 1, 15, 3)
             clf = KNeighborsClassifier(n_neighbors=n_neighbors)
         elif modelo == "Árbol de Decisión":
-            max_depth = st.slider("Profundidad máxima del árbol", 1, 10, 3)
-            clf = DecisionTreeClassifier(max_depth=max_depth, random_state=42)
+            max_depth = st.slider("Profundidad máxima del árbol", 1, 15, 5)
+            criterion = st.selectbox("Criterio de división:", ["gini", "entropy"])
+            clf = DecisionTreeClassifier(max_depth=max_depth, criterion=criterion, random_state=42)
         else:
             clf = GaussianNB()
 
@@ -91,22 +105,42 @@ if uploaded_file is not None:
         # Matriz de confusión
         cm = confusion_matrix(y_test, y_pred)
         fig, ax = plt.subplots()
-        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=clf.classes_)
-        disp.plot(ax=ax, cmap="Greens", colorbar=False)
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=np.unique(y))
+        disp.plot(ax=ax, cmap="Blues", colorbar=False)
         st.pyplot(fig)
 
         # -----------------------------
-        # Predicción con datos nuevos
+        # Visualización 2D
         # -----------------------------
-        st.header("🔮 Predicción de Cultivo Nuevo")
-        input_data = {}
-        for col in X.columns:
-            input_data[col] = st.number_input(f"Ingrese valor para {col}", float(df[col].min()), float(df[col].max()), float(df[col].mean()))
+        st.subheader("🔎 Visualización 2D de Clases")
+        feat_x = st.selectbox("Eje X", df.columns[:-1], index=0)
+        feat_y = st.selectbox("Eje Y", df.columns[:-1], index=1)
 
-        if st.button("Predecir"):
-            new_data = pd.DataFrame([input_data])
-            prediction = clf.predict(new_data)
-            st.success(f"🌱 El modelo predice que el cultivo es: **{prediction[0]}**")
+        fig, ax = plt.subplots()
+        scatter = ax.scatter(df[feat_x], df[feat_y], c=pd.Categorical(df["Target"]).codes, cmap="viridis", alpha=0.7)
+        legend1 = ax.legend(*scatter.legend_elements(), title="Clases")
+        ax.add_artist(legend1)
+        ax.set_xlabel(feat_x)
+        ax.set_ylabel(feat_y)
+        st.pyplot(fig)
+
+        # -----------------------------
+        # Mostrar Árbol de Decisión
+        # -----------------------------
+        if modelo == "Árbol de Decisión":
+            st.subheader("🌳 Visualización del Árbol de Decisión")
+
+            fig, ax = plt.subplots(figsize=(14, 8))
+            tree.plot_tree(
+                clf,
+                feature_names=X.columns,
+                class_names=[str(c) for c in np.unique(y)],
+                filled=True,
+                rounded=True,
+                fontsize=8,
+                ax=ax
+            )
+            st.pyplot(fig)
 
     except Exception as e:
         st.error(f"❌ Error al procesar el archivo: {e}")
