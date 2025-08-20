@@ -18,3 +18,16 @@ Ejemplos de algoritmos:
 - K-Nearest Neighbors (KNN)
 - Árboles de Decisión
 - Máquinas de Soporte Vectorial (SVM)
+
+---
+
+## 🔍 Aprendizaje No Supervisado
+
+El **aprendizaje no supervisado** trabaja con datos que no tienen etiquetas.
+El objetivo es descubrir patrones ocultos, agrupaciones o estructuras en los datos.
+
+Ejemplos de algoritmos:
+- K-Means (clustering)
+- DBSCAN
+- PCA (reducción de dimensionalidad)
+- Modelos de mezcla gaussiana (GMM)
